@@ -159,5 +159,17 @@ function AuloPackage:GetPackage(name)
     return aulo.GetPackage(name) or aulo.GetPackageByName(name)
 end
 
+function AuloPackage:__tostring()
+    local str = "<AuloPackage:" .. self._id_ .. ">\n"
+    
+    for field, value in SortedPairs(self) do
+        if AuloPackage[field] == nil then
+            str = str .. ("\t%-24s : %s\n"):format(field, value)
+        end
+    end
+    
+    return str
+end
+
 -- Allows calls like AuloPackage() to instantiate a new object
 setmetatable(AuloPackage, {__call = AuloPackage.new})

@@ -61,13 +61,15 @@ end
 function aulo.Print(tbl, depth)
     local str = tbl and "" or aulo.basepath
     
-    for name, pkgs in pairs(tbl or aulo.packages) do
-        str = str .. ("\n%s%-12s"):format(('  '):rep(depth or 1), name)
+    for name, pkg in SortedPairs(tbl or aulo.packages) do
+        if not istable(pkg) or pkg._aulo_ == nil then continue end
         
-        if IsValid(pkgs) then
-            str = str .. (" (%d fields/functions)"):format(table.Count(pkgs))
-        else
-            str = str .. ("\n%s%s"):format(('  '):rep(depth and depth + 1 or 2), aulo.Print(pkgs, depth or 2))
+        str = str .. ("\n%s╚ %-12s"):format(('  '):rep(depth or 1), name)
+        str = str .. (" (%d fields/functions)"):format(table.Count(pkg))
+        
+        local substr = aulo.Print(pkg, depth and depth + 1 or 2)
+        if substr ~= nil then
+            str = str .. ("%s%s"):format(('  '):rep(depth and depth + 1 or 2), substr)
         end
     end
     
@@ -78,6 +80,7 @@ function aulo.Print(tbl, depth)
     end
 end
 
+--[[
 function aulo.Print()
     local base = aulo.basepath:Replace("/", ".")
     
@@ -89,10 +92,12 @@ function aulo.Print()
         local depth = #tbl
         
         output = output .. ("\n%s╚ %-12s (%s fields/functions)"):format(("  "):rep(depth - 1), tbl[depth], table.Count(pkg))
+        output = output .. aulo.PrintRec(pkg, depth)
     end
     
     print(output)
 end
+]]
 
 --[[--------------------------------------------------------------------------
 -- 	ClearPackages()
