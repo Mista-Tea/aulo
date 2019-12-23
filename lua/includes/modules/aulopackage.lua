@@ -130,6 +130,19 @@ function AuloPackage:RunGlobalHook(hookname, ...)
     hook.Run(hookname, ...)
 end
 
+--[[--------------------------------------------------------------------------
+-- 	AddGamemodeHook(string, function)
+--]]--
+function AuloPackage:AddGamemodeHook(hookname, func)
+    GAMEMODE[hookname] = func
+end
+
+--[[--------------------------------------------------------------------------
+-- 	RunGamemodeHook(string, varargs...)
+--]]--
+function AuloPackage:RunGamemodeHook(hookname, ...)
+    GAMEMODE[hookname](...)
+end
 
 if SERVER then
     function AuloPackage:AddNetworkString(msgname)
@@ -157,6 +170,9 @@ function AuloPackage:Receive(msgname, callback)
     net.Receive(self._id_ .. '.' .. msgname, callback)
 end
 
+--[[--------------------------------------------------------------------------
+-- 	GetPackage(string)
+--]]--
 function AuloPackage:GetPackage(name)
     local aulo = self._aulo_()
     return aulo:GetPackage(name) or aulo:GetPackageByName(name)
