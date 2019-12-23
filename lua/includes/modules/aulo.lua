@@ -177,6 +177,17 @@ function Aulo:LoadPackage(destination, path, packagename, doRecursive)
 end
 
 --[[--------------------------------------------------------------------------
+-- 	Reload
+--]]--
+function Aulo:Reload()
+    if self.basepath == nil then
+        ErrorNoHalt("[Aulo] No project loaded - unable to reload. Try loading a project first.\n")
+    else
+        self:Load(self.basepath)
+    end
+end
+
+--[[--------------------------------------------------------------------------
 -- 	Load(string, string)
 --]]--
 function Aulo:Load(basepath, searchpath)
