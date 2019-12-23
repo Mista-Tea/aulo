@@ -32,10 +32,13 @@ local ErrorNoHalt = ErrorNoHalt
 local AddCSLuaFile = AddCSLuaFile
 
 AddCSLuaFile('includes/modules/aulopackage.lua')
-require('aulopackage')
+include('includes/modules/aulopackage.lua')
 
 aulo = aulo or {
     packages   = {},    -- table of loaded packages (AuloPackage objects)
+    lookup     = {},    -- table of packages indexed by their package path (abc.jkl.xyz)
+    basepath   = "",    -- the directory where packages are located
+    baseid     = "",    -- the root of the package directory (equivalent to basepath with '.' instead of '/')
     searchpath = "LUA", -- where to load files from, see http://wiki.garrysmod.com/page/File_Search_Paths
 }
 
@@ -53,30 +56,103 @@ else
 end
 
 --[[--------------------------------------------------------------------------
+-- 	Print([table]. [number])
+--]]--
+function aulo.Print(tbl, depth)
+    local str = tbl and "" or aulo.basepath
+    
+    for name, pkgs in pairs(tbl or aulo.packages) do
+        str = str .. ("\n%s%-12s"):format(('  '):rep(depth or 1), name)
+        
+        if IsValid(pkgs) then
+            str = str .. (" (%d fields/functions)"):format(table.Count(pkgs))
+        else
+            str = str .. ("\n%s%s"):format(('  '):rep(depth and depth + 1 or 2), aulo.Print(pkgs, depth or 2))
+        end
+    end
+    
+    if not tbl then
+        print(str)
+    else
+        return str
+    end
+end
+
+function aulo.Print()
+    local base = aulo.basepath:Replace("/", ".")
+    
+    local output = base
+    
+    for name, pkg in SortedPairs(aulo.lookup) do
+        local id = pkg:GetID():Replace(base .. ".", "")
+        local tbl = ("."):Explode(id)
+        local depth = #tbl
+        
+        output = output .. ("\n%s╚ %-12s (%s fields/functions)"):format(("  "):rep(depth - 1), tbl[depth], table.Count(pkg))
+    end
+    
+    print(output)
+end
+
+--[[--------------------------------------------------------------------------
 -- 	ClearPackages()
 --]]--
 function aulo.ClearPackages()
     aulo.packages = {}
+    aulo.lookup   = {}
+end
+
+--[[--------------------------------------------------------------------------
+-- 	GetPackage(string)
+--]]--
+function aulo.GetPackage(id)
+    return aulo.lookup[id:lower()]
+end
+
+--[[--------------------------------------------------------------------------
+-- 	GetPackageByName(string)
+--]]--
+function aulo.GetPackageByName(name)
+    return aulo.lookup[aulo.baseid .. "." .. name]
+end
+
+--[[--------------------------------------------------------------------------
+-- 	GetPackages()
+--]]--
+function aulo.GetPackages()
+    return aulo.packages
 end
 
 --[[--------------------------------------------------------------------------
 -- 	GenerateNewPackage(string, string)
 --]]--
-function aulo.GenerateNewPackage(path, packagename)
-    -- Convert the package filepath into something similar to Java's packages
-    path = ("%s.%s."):format(path:Replace('/', '.'), packagename)
+function aulo.GenerateNewPackage(parent, packagename, path)
+    local pkg = AuloPackage(aulo, parent, packagename, path)
+    aulo.lookup[pkg:GetID()] = pkg
     
-    return AuloPackage(path)
+    return pkg
 end
 
 --[[--------------------------------------------------------------------------
--- 	LoadPackage(table, string, string)
+-- 	ReloadPackage(string, boolean)
 --]]--
-function aulo.LoadPackage(destination, path, packagename)
+function aulo.ReloadPackage(id, doRecursive)
+    local pkg = aulo.GetPackage(id) or aulo.GetPackageByName(id)
+    if pkg then
+        aulo.LoadPackage(pkg:GetParent(), pkg:GetPath(), pkg:GetName(), doRecursive or false)
+    else
+        ErrorNoHalt(("\n[aulo] No package was found with the id '%s'\n"):format(id))
+    end
+end
+
+--[[--------------------------------------------------------------------------
+-- 	LoadPackage(table, string, string, boolean)
+--]]--
+function aulo.LoadPackage(destination, path, packagename, doRecursive)
     local files, subpackages = file.Find(("%s/%s/*"):format(path, packagename), aulo.searchpath, "nameasc")
     
     -- Create a new package, or reuse it if it already exists (i.e. reloading)
-    destination[packagename] = destination[packagename] or aulo.GenerateNewPackage(path, packagename)
+    destination[packagename] = destination[packagename] or aulo.GenerateNewPackage(destination, packagename, path)
         
     -- Loop through each Lua file in the package and include it based on it's file prefix (cl_, sh_, sv_)
     for _, filename in ipairs(files) do
@@ -94,9 +170,11 @@ function aulo.LoadPackage(destination, path, packagename)
     end
     
     -- Loop through the subfolders and recursively add them as subpackages
-    for _, subpackage in ipairs(subpackages) do
-        local subpath = ("%s/%s"):format(path, packagename)
-        aulo.LoadPackage(destination[packagename], subpath, subpackage)
+    if doRecursive then
+        for _, subpackage in ipairs(subpackages) do
+            local subpath = ("%s/%s"):format(path, packagename)
+            aulo.LoadPackage(destination[packagename], subpath, subpackage)
+        end
     end
 end
 
@@ -104,12 +182,14 @@ end
 -- 	Load(string)
 --]]--
 function aulo.Load(basepath, searchpath)
+    aulo.basepath   = basepath
+    aulo.baseid     = basepath:Replace("/", ".")
     aulo.searchpath = searchpath or aulo.searchpath
     
     local _, folders = file.Find(basepath .. "/*", aulo.searchpath, "nameasc")
     
     -- Loop through each folder in the directory and begin recursively building the packages
     for _, folder in ipairs(folders) do
-        aulo.LoadPackage(aulo.packages, basepath, folder)
+        aulo.LoadPackage(aulo.packages, basepath, folder, true)
     end
 end
