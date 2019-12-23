@@ -17,6 +17,9 @@ function AuloPackage:new(aulo, parent, name, path)
     }, self)
 end
 
+-- Allows calls like AuloPackage() to instantiate a new object
+setmetatable(AuloPackage, {__call = AuloPackage.new})
+
 --[[--------------------------------------------------------------------------
 -- 	GetParent()
 --]]--
@@ -156,7 +159,7 @@ end
 
 function AuloPackage:GetPackage(name)
     local aulo = self._aulo_()
-    return aulo.GetPackage(name) or aulo.GetPackageByName(name)
+    return aulo:GetPackage(name) or aulo:GetPackageByName(name)
 end
 
 function AuloPackage:__tostring()
@@ -170,6 +173,3 @@ function AuloPackage:__tostring()
     
     return str
 end
-
--- Allows calls like AuloPackage() to instantiate a new object
-setmetatable(AuloPackage, {__call = AuloPackage.new})
