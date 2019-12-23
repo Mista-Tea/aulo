@@ -173,7 +173,7 @@ function aulo.LoadPackage(destination, path, packagename, doRecursive)
     if doRecursive then
         for _, subpackage in ipairs(subpackages) do
             local subpath = ("%s/%s"):format(path, packagename)
-            aulo.LoadPackage(destination[packagename], subpath, subpackage)
+            aulo.LoadPackage(destination[packagename], subpath, subpackage, doRecursive)
         end
     end
 end
