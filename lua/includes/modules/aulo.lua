@@ -137,7 +137,7 @@ end
 function Aulo:ReloadPackage(id, doRecursive)
     local pkg = self:GetPackage(id) or self:GetPackageByName(id)
     if pkg then
-        Aulo:LoadPackage(pkg:GetParent(), pkg:GetPath(), pkg:GetName(), doRecursive or false)
+        self:LoadPackage(pkg:GetParent(), pkg:GetPath(), pkg:GetName(), doRecursive or false)
     else
         ErrorNoHalt(("\n[Aulo] No package was found with the id '%s'\n"):format(id))
     end
