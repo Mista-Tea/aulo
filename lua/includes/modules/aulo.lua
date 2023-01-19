@@ -47,6 +47,7 @@ function Aulo:new()
         basepath   = "",    -- the directory where packages are located
         baseid     = "",    -- the root of the package directory (equivalent to basepath with '.' instead of '/')
         searchpath = "LUA", -- where to load files from, see http://wiki.garrysmod.com/page/File_Search_Paths
+        debug      = false,
     }, self)
 end
 
@@ -90,6 +91,31 @@ function Aulo:Print(tbl, depth)
     end
     
     return str
+end
+
+--[[--------------------------------------------------------------------------
+-- 	EnableDebugging(boolean)
+--]]--
+function Aulo:EnableDebugging(bool)
+    self.debug = bool and true or false
+end
+
+--[[--------------------------------------------------------------------------
+-- 	IsDebugging()
+--]]--
+function Aulo:IsDebugging()
+    return self.debug
+end
+
+--[[--------------------------------------------------------------------------
+-- 	Debug(varargs...)
+--]]--
+function Aulo:Debug(...)
+    MsgC(Color(255,255,255), "[")
+    MsgC(Color(25,200,25), "Aulo :: Debug")
+    MsgC(Color(255,255,255), "] ")
+    MsgC(Color(200,200,50), ...)
+    print()
 end
 
 --[[--------------------------------------------------------------------------
@@ -149,6 +175,13 @@ end
 function Aulo:LoadPackage(destination, path, packagename, doRecursive)
     local files, subpackages = file.Find(("%s/%s/*"):format(path, packagename), self.searchpath, "nameasc")
     
+    if self:IsDebugging() then
+        if destination[packagename] then
+            self:Debug(("Reloading package: %s/%s"):format(path, packagename))
+        else
+            self:Debug(("Loading package: %s/%s"):format(path, packagename))
+        end
+    end
     -- Create a new package, or reuse it if it already exists (i.e. reloading)
     destination[packagename] = destination[packagename] or self:GenerateNewPackage(destination, packagename, path)
         

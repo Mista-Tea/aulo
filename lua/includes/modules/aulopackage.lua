@@ -20,11 +20,41 @@ end
 -- Allows calls like AuloPackage() to instantiate a new object
 setmetatable(AuloPackage, {__call = AuloPackage.new})
 
+function AuloPackage:__tostring()
+    local str = "<[object:AuloPackage]\n  Fields:\n"
+    
+    for field, value in SortedPairs(self) do
+        if AuloPackage[field] == nil then
+            str = str .. ("\t%-24s : %s\n"):format(field, value)
+        end
+    end
+    
+    return str .. ">"
+end
+
+--[[--------------------------------------------------------------------------
+-- 	IsDebugging()
+--]]--
+function AuloPackage:IsDebugging()
+    return self:_aulo_().debug
+end
+
+--[[--------------------------------------------------------------------------
+-- 	Debug(varargs...)
+--]]--
+function AuloPackage:Debug(...)
+    self:_aulo_():Debug(...)
+end
+
+function AuloPackage:Reload(doRecursive)
+    self:_aulo_():ReloadPackage(self._id_, doRecursive)
+end
+
 --[[--------------------------------------------------------------------------
 -- 	GetParent()
 --]]--
 function AuloPackage:GetParent()
-    return self._parent_()
+    return self:_parent_()
 end
 
 --[[--------------------------------------------------------------------------
@@ -127,6 +157,10 @@ end
 -- 	RunGlobalHook(string, varargs...)
 --]]--
 function AuloPackage:RunGlobalHook(hookname, ...)
+    if self:IsDebugging() then
+        self:Debug("Hook: ", hookname)
+    end
+    
     hook.Run(hookname, ...)
 end
 
@@ -167,7 +201,18 @@ else
 end
 
 function AuloPackage:Receive(msgname, callback)
-    net.Receive(self._id_ .. '.' .. msgname, callback)
+    local _callback
+    
+    if self:IsDebugging() then
+         _callback = function(...)
+            self:Debug("Net Receive: ", msgname)
+            callback(...)
+        end
+    else
+        _callback = callback
+    end
+    
+    net.Receive(self._id_ .. '.' .. msgname, _callback)
 end
 
 --[[--------------------------------------------------------------------------
@@ -176,16 +221,4 @@ end
 function AuloPackage:GetPackage(name)
     local aulo = self._aulo_()
     return aulo:GetPackage(name) or aulo:GetPackageByName(name)
-end
-
-function AuloPackage:__tostring()
-    local str = "<AuloPackage:" .. self._id_ .. ">\n"
-    
-    for field, value in SortedPairs(self) do
-        if AuloPackage[field] == nil then
-            str = str .. ("\t%-24s : %s\n"):format(field, value)
-        end
-    end
-    
-    return str
 end
